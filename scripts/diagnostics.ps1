@@ -3,15 +3,13 @@ Write-Host "   TIER-1 IT SYSTEM HEALTH CHECK" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 
 # 1. Hostname and User info
-Write-Host "
-[+] System Information:" -ForegroundColor Yellow
+Write-Host "`n[+] System Information:" -ForegroundColor Yellow
 Write-Host "Machine Name : $env:COMPUTERNAME"
 Write-Host "Current User : $env:USERNAME"
 Write-Host "OS Version   : $( (Get-CimInstance Win32_OperatingSystem).Caption )"
 
 # 2. Disk Space Audit
-Write-Host "
-[+] Storage Status:" -ForegroundColor Yellow
+Write-Host "`n[+] Storage Status:" -ForegroundColor Yellow
 Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{Name="Free(GB)";Expression={[math]::round($_.Free / 1GB, 2)}}, @{Name="Used(GB)";Expression={[math]::round($_.Used / 1GB, 2)}} | Format-Table -AutoSize
 
 # 3. Top 3 CPU Consuming Processes
@@ -26,5 +24,14 @@ if ($pingTest) {
 } else {
     Write-Host "Status: OFFLINE (Check local network connection)" -ForegroundColor Red
 }
-Write-Host "
-==========================================" -ForegroundColor Cyan
+
+# 5. Recent System Critical / Error Events (Last 24 Hours)
+Write-Host "`n[+] Recent Critical & Error Events (Last 24 Hours):" -ForegroundColor Yellow
+$recentErrors = Get-WinEvent -FilterHashtable @{LogName='System'; Level=@(1,2); StartTime=(Get-Date).AddDays(-1)} -MaxEvents 3 -ErrorAction SilentlyContinue
+if ($recentErrors) {
+    $recentErrors | Select-Object TimeCreated, LevelDisplayName, Id, Message | Format-Table -AutoSize
+} else {
+    Write-Host "Status: CLEAN (No critical errors reported in the last 24 hours)" -ForegroundColor Green
+}
+
+Write-Host "`n==========================================" -ForegroundColor Cyan
